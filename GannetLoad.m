@@ -13,6 +13,10 @@ function MRS_struct = GannetLoad(varargin)
 %   6. Build GannetLoad output
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%%% FM MODIFICACION 20240313 
+plotOutput = true;
+
+
 if nargin == 0
     fprintf('\n');
     error('MATLAB:minrhs', 'Not enough input arguments.');
@@ -88,6 +92,11 @@ if num_args == 3
         assert(strcmpi(ext, '.csv'), 'The third argument must be a .csv file.');
         trimAvgs = readtable(var_args{3});
     end
+end
+
+%%% FM MODIFICACION 20240313 
+if num_args == 4
+    plotOutput = var_args{4};
 end
 
 
@@ -517,214 +526,215 @@ for ii = 1:MRS_struct.p.numScans % Loop over all files in the batch (from metabf
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             %   6. Build GannetLoad output
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            
-            if ishandle(101)
-                clf(101);
-            end
-            if MRS_struct.p.hide
-                h = figure('Visible', 'off');
-            else
-                h = figure(101);
-            end
-            % Open figure in center of screen
-            scr_sz = get(0,'ScreenSize');
-            fig_w = 1000;
-            fig_h = 707;
-            set(h,'Position',[(scr_sz(3)-fig_w)/2, (scr_sz(4)-fig_h)/2, fig_w, fig_h]);
-            set(h,'Color',[1 1 1]);
-            figTitle = 'GannetLoad Output';
-            set(h,'Name',figTitle,'Tag',figTitle,'NumberTitle','off');
-            
-            % Top left
-            if length(MRS_struct.p.target) == 3
-                subplot(5,2,1:2:5);
-            else
-                subplot(2,2,1);
-            end
-            PlotPrePostAlign(MRS_struct, vox, ii, kk);
-            
-            % Top right
-            if MRS_struct.p.phantom
-                if MRS_struct.p.HERMES
+            if (plotOutput)
+                if ishandle(101)
+                    clf(101);
+                end
+                if MRS_struct.p.hide
+                    h = figure('Visible', 'off');
+                else
+                    h = figure(101);
+                end
+                % Open figure in center of screen
+                scr_sz = get(0,'ScreenSize');
+                fig_w = 1000;
+                fig_h = 707;
+                set(h,'Position',[(scr_sz(3)-fig_w)/2, (scr_sz(4)-fig_h)/2, fig_w, fig_h]);
+                set(h,'Color',[1 1 1]);
+                figTitle = 'GannetLoad Output';
+                set(h,'Name',figTitle,'Tag',figTitle,'NumberTitle','off');
+                
+                % Top left
+                if length(MRS_struct.p.target) == 3
+                    subplot(5,2,1:2:5);
+                else
+                    subplot(2,2,1);
+                end
+                PlotPrePostAlign(MRS_struct, vox, ii, kk);
+                
+                % Top right
+                if MRS_struct.p.phantom
+                    if MRS_struct.p.HERMES
+                        F0 = 3.02;
+                    else
+                        F0 = 4.8;
+                    end
+                elseif MRS_struct.p.HERMES || any(strcmp(MRS_struct.p.target, 'GSH'))
                     F0 = 3.02;
                 else
-                    F0 = 4.8;
+                    F0 = 4.68;
                 end
-            elseif MRS_struct.p.HERMES || any(strcmp(MRS_struct.p.target, 'GSH'))
-                F0 = 3.02;
-            else
-                F0 = 4.68;
-            end
-            
-            subplot(2,2,2);
-            if ~MRS_struct.p.weighted_averaging && size(MRS_struct.fids.data,2) >= 4
-                rejectframesplot = (1./MRS_struct.out.reject{ii}) .* MRS_struct.spec.F0freq{ii};
-            end
-            hold on;
-            plot([1 size(MRS_struct.fids.data,2)], [F0 F0], '-k')
-            plot([1 size(MRS_struct.fids.data,2)], [F0-0.04 F0-0.04], '--k')
-            plot([1 size(MRS_struct.fids.data,2)], [F0+0.04 F0+0.04], '--k');
-            plot(1:size(MRS_struct.fids.data,2), MRS_struct.spec.F0freq{ii}', 'Color', 'b');
-            if ~MRS_struct.p.weighted_averaging && size(MRS_struct.fids.data,2) >= 4
-                plot(1:size(MRS_struct.fids.data,2), rejectframesplot, 'ro');
-            end
-            hold off;
-            if MRS_struct.p.HERMES || any(strcmp(MRS_struct.p.target, 'GSH'))
-                text(size(MRS_struct.fids.data,2) + 0.025*size(MRS_struct.fids.data,2), F0, {'Nominal','Cr freq.'}, 'FontSize', 8);
-            else
-                text(size(MRS_struct.fids.data,2) + 0.025*size(MRS_struct.fids.data,2), F0, {'Nominal','water freq.'}, 'FontSize', 8);
-            end
-            set(gca,'TickDir','out','box','off','XLim',[1 size(MRS_struct.fids.data,2)], ...
-                'YLim',[min([F0-0.06 MRS_struct.spec.F0freq{ii}-0.005]) max([F0+0.06 MRS_struct.spec.F0freq{ii}+0.005])]);
-            if size(MRS_struct.fids.data,2) == 2
-                set(gca,'XTick',[1 2]);
-            end
-            xlabel('average');
-            ylabel('ppm');
-            if MRS_struct.p.HERMES || any(strcmp(MRS_struct.p.target, 'GSH'))
-                title('Cr frequency');
-            else
-                title('Water frequency');
-            end
-            
-            % Bottom left
-            if length(MRS_struct.p.target) == 3
-                subplot(3,2,5);
-            else
-                subplot(2,2,3);
-            end
-            if ~strcmp(MRS_struct.p.alignment, 'none')
-                CrFitLimLow = 2.72;
-                CrFitLimHigh = 3.12;
-                plotrange = MRS_struct.spec.freq <= CrFitLimHigh & MRS_struct.spec.freq >= CrFitLimLow;
-                CrFitRange = sum(plotrange);
-                plotrealign = [real(AllFramesFT(plotrange,:)); real(AllFramesFTrealign(plotrange,:))];
-                % Don't display rejects
+                
+                subplot(2,2,2);
                 if ~MRS_struct.p.weighted_averaging && size(MRS_struct.fids.data,2) >= 4
-                    plotrealign(CrFitRange+1:end,(MRS_struct.out.reject{ii} == 1)) = min(plotrealign(:));
+                    rejectframesplot = (1./MRS_struct.out.reject{ii}) .* MRS_struct.spec.F0freq{ii};
                 end
-                imagesc(plotrealign);
-                colormap('parula');
-                title({'Cr frequency','(pre- and post-alignment)'});
+                hold on;
+                plot([1 size(MRS_struct.fids.data,2)], [F0 F0], '-k')
+                plot([1 size(MRS_struct.fids.data,2)], [F0-0.04 F0-0.04], '--k')
+                plot([1 size(MRS_struct.fids.data,2)], [F0+0.04 F0+0.04], '--k');
+                plot(1:size(MRS_struct.fids.data,2), MRS_struct.spec.F0freq{ii}', 'Color', 'b');
+                if ~MRS_struct.p.weighted_averaging && size(MRS_struct.fids.data,2) >= 4
+                    plot(1:size(MRS_struct.fids.data,2), rejectframesplot, 'ro');
+                end
+                hold off;
+                if MRS_struct.p.HERMES || any(strcmp(MRS_struct.p.target, 'GSH'))
+                    text(size(MRS_struct.fids.data,2) + 0.025*size(MRS_struct.fids.data,2), F0, {'Nominal','Cr freq.'}, 'FontSize', 8);
+                else
+                    text(size(MRS_struct.fids.data,2) + 0.025*size(MRS_struct.fids.data,2), F0, {'Nominal','water freq.'}, 'FontSize', 8);
+                end
+                set(gca,'TickDir','out','box','off','XLim',[1 size(MRS_struct.fids.data,2)], ...
+                    'YLim',[min([F0-0.06 MRS_struct.spec.F0freq{ii}-0.005]) max([F0+0.06 MRS_struct.spec.F0freq{ii}+0.005])]);
+                if size(MRS_struct.fids.data,2) == 2
+                    set(gca,'XTick',[1 2]);
+                end
                 xlabel('average');
                 ylabel('ppm');
-                set(gca, 'YTick', [CrFitRange * (CrFitLimHigh - 3.02) / (CrFitLimHigh - CrFitLimLow) ...
-                                   CrFitRange ...
-                                   CrFitRange + CrFitRange * (CrFitLimHigh - 3.02) / (CrFitLimHigh - CrFitLimLow) ...
-                                   CrFitRange * 2], ...
-                    'YTickLabel', [3.02 CrFitLimLow 3.02 CrFitLimLow], ...
-                    'XLim', [1 size(MRS_struct.fids.data,2)], ...
-                    'YLim', [1 CrFitRange * 2], ...
-                    'TickDir','out','box','off');
-                if size(MRS_struct.fids.data,2) == 2
-                    set(gca, 'XTick', [1 2]);
+                if MRS_struct.p.HERMES || any(strcmp(MRS_struct.p.target, 'GSH'))
+                    title('Cr frequency');
+                else
+                    title('Water frequency');
                 end
-                % Add in labels for pre/post
-                text(size(plotrealign,2)/18*17, 0.4*size(plotrealign,1), 'PRE', 'Color', [1 1 1], 'HorizontalAlignment', 'right');
-                text(size(plotrealign,2)/18*17, 0.9*size(plotrealign,1), 'POST', 'Color', [1 1 1], 'HorizontalAlignment', 'right');
-            else
-                CrFitLimLow = 2.72;
-                CrFitLimHigh = 3.12;
-                plotrange = MRS_struct.spec.freq <= CrFitLimHigh & MRS_struct.spec.freq >= CrFitLimLow;
-                CrFitRange = sum(plotrange);
-                plotrealign = real(AllFramesFTrealign(plotrange,:));
-                imagesc(plotrealign);
-                colormap('parula');
-                title({'Cr frequency','(no alignment)'});
-                xlabel('average');
-                ylabel('ppm');
-                set(gca, 'YTick', [CrFitRange * (CrFitLimHigh - 3.02) / (CrFitLimHigh - CrFitLimLow) ...
-                                   CrFitRange], ...
-                    'YTickLabel', [3.02 CrFitLimLow], ...
-                    'XLim', [1 size(MRS_struct.fids.data,2)], ...
-                    'YLim', [1 CrFitRange], ...
-                    'TickDir','out','box','off');
-                if size(MRS_struct.fids.data,2) == 2
-                    set(gca, 'XTick', [1 2]);
+                
+                % Bottom left
+                if length(MRS_struct.p.target) == 3
+                    subplot(3,2,5);
+                else
+                    subplot(2,2,3);
                 end
-            end
-            
-            % Bottom right
-            subplot(2,2,4);
-            axis off;
-            
-            if strcmp(MRS_struct.p.vendor, 'Siemens_rda')
-                [~,tmp,tmp2] = fileparts(MRS_struct.metabfile{1,ii*2-1});
-            else
-                [~,tmp,tmp2] = fileparts(MRS_struct.metabfile{1,ii});
-            end
-            fname = [tmp tmp2];
-            if length(fname) > 30
-                fname = sprintf([fname(1:floor((end-1)/2)) '...\n     ' fname(ceil(end/2):end)]);
-                shift = 0.02;
-            else
-                shift = 0;
-            end
-            text(0.25, 1, 'Filename: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'HorizontalAlignment', 'right');
-            if MRS_struct.p.join
-                text(0.275, 1+shift, [fname ' (+ ' num2str(MRS_struct.p.numFilesPerScan - 1) ' more)'], 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'Interpreter', 'none');
-            else
-                text(0.275, 1+shift, fname, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'Interpreter', 'none');
-            end
-            
-            vendor = MRS_struct.p.vendor;
-            ind = strfind(vendor,'_');
-            if ~isempty(ind)
-                vendor(ind:end) = '';
-            end
-            text(0.25, 0.9, 'Vendor: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'HorizontalAlignment', 'right');
-            text(0.275, 0.9, vendor, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'Interpreter', 'none');
-            
-            text(0.25, 0.8, 'TE/TR: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'HorizontalAlignment', 'right');
-            text(0.275, 0.8, [num2str(MRS_struct.p.TE(ii)) '/' num2str(MRS_struct.p.TR(ii)) ' ms'], 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'Interpreter', 'none');
-            
-            text(0.25, 0.7, 'Averages: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'HorizontalAlignment', 'right');
-            text(0.275, 0.7, num2str(MRS_struct.p.Navg(ii)), 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13);
-            
-            tmp = [num2str(MRS_struct.p.voxdim(ii,1)) ' \times ' num2str(MRS_struct.p.voxdim(ii,2)) ' \times ' num2str(MRS_struct.p.voxdim(ii,3)) ' mm^{3}'];
-            text(0.25, 0.6, 'Volume: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'HorizontalAlignment', 'right');
-            text(0.275, 0.6, tmp, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13);
-            
-            text(0.25, 0.5, 'Spectral width: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'HorizontalAlignment', 'right');
-            text(0.275, 0.5, [num2str(MRS_struct.p.sw(ii)) ' Hz'], 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'Interpreter', 'none');
-            
-            text(0.25, 0.4, 'Data points: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'HorizontalAlignment', 'right');
-            text(0.275, 0.4, [num2str(MRS_struct.p.npoints(ii)) ' (zero-filled to ' num2str(MRS_struct.p.ZeroFillTo(ii)) ')'], 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'Interpreter', 'none');
-                        
-            text(0.25, 0.3, 'Alignment: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'HorizontalAlignment', 'right');
-            if strcmp(MRS_struct.p.alignment, 'RobustSpecReg') && MRS_struct.p.use_prealign_ref
-                text(0.275, 0.3, [MRS_struct.p.alignment ' (PreAlignRef)'], 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13);
-            else
-                text(0.275, 0.3, MRS_struct.p.alignment, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13);
-            end
-            
-            tmp = [num2str(MRS_struct.p.LB) ' Hz'];
-            text(0.25, 0.2, 'Line-broadening: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'HorizontalAlignment', 'right');
-            text(0.275, 0.2, tmp, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13);
-            
-            text(0.25, 0.1, 'Rejects: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'HorizontalAlignment', 'right');
-            if MRS_struct.p.weighted_averaging
-                text(0.275, 0.1, 'n/a - wgt. avg. used', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13);
-            else
-                text(0.275, 0.1, num2str(sum(MRS_struct.out.reject{ii})), 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13);
-            end
-            
-            text(0.25, 0, 'LoadVer: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'HorizontalAlignment', 'right');
-            text(0.275, 0, MRS_struct.version.load, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13);
-            
-            % Save output as PDF
-            run_count = SavePDF(h, MRS_struct, ii, 1, kk, vox, mfilename, run_count);
-            
-            % Reorder structure
-            if isfield(MRS_struct, 'waterfile')
-                structorder = {'version', 'ii', 'metabfile', ...
-                    'waterfile', 'p', 'fids', 'spec', 'out'};
-            else
-                structorder = {'version', 'ii', 'metabfile', ...
-                    'p', 'fids', 'spec', 'out'};
-            end
-            MRS_struct = orderfields(MRS_struct, structorder);
-            
+                if ~strcmp(MRS_struct.p.alignment, 'none')
+                    CrFitLimLow = 2.72;
+                    CrFitLimHigh = 3.12;
+                    plotrange = MRS_struct.spec.freq <= CrFitLimHigh & MRS_struct.spec.freq >= CrFitLimLow;
+                    CrFitRange = sum(plotrange);
+                    plotrealign = [real(AllFramesFT(plotrange,:)); real(AllFramesFTrealign(plotrange,:))];
+                    % Don't display rejects
+                    if ~MRS_struct.p.weighted_averaging && size(MRS_struct.fids.data,2) >= 4
+                        plotrealign(CrFitRange+1:end,(MRS_struct.out.reject{ii} == 1)) = min(plotrealign(:));
+                    end
+                    imagesc(plotrealign);
+                    colormap('parula');
+                    title({'Cr frequency','(pre- and post-alignment)'});
+                    xlabel('average');
+                    ylabel('ppm');
+                    set(gca, 'YTick', [CrFitRange * (CrFitLimHigh - 3.02) / (CrFitLimHigh - CrFitLimLow) ...
+                                       CrFitRange ...
+                                       CrFitRange + CrFitRange * (CrFitLimHigh - 3.02) / (CrFitLimHigh - CrFitLimLow) ...
+                                       CrFitRange * 2], ...
+                        'YTickLabel', [3.02 CrFitLimLow 3.02 CrFitLimLow], ...
+                        'XLim', [1 size(MRS_struct.fids.data,2)], ...
+                        'YLim', [1 CrFitRange * 2], ...
+                        'TickDir','out','box','off');
+                    if size(MRS_struct.fids.data,2) == 2
+                        set(gca, 'XTick', [1 2]);
+                    end
+                    % Add in labels for pre/post
+                    text(size(plotrealign,2)/18*17, 0.4*size(plotrealign,1), 'PRE', 'Color', [1 1 1], 'HorizontalAlignment', 'right');
+                    text(size(plotrealign,2)/18*17, 0.9*size(plotrealign,1), 'POST', 'Color', [1 1 1], 'HorizontalAlignment', 'right');
+                else
+                    CrFitLimLow = 2.72;
+                    CrFitLimHigh = 3.12;
+                    plotrange = MRS_struct.spec.freq <= CrFitLimHigh & MRS_struct.spec.freq >= CrFitLimLow;
+                    CrFitRange = sum(plotrange);
+                    plotrealign = real(AllFramesFTrealign(plotrange,:));
+                    imagesc(plotrealign);
+                    colormap('parula');
+                    title({'Cr frequency','(no alignment)'});
+                    xlabel('average');
+                    ylabel('ppm');
+                    set(gca, 'YTick', [CrFitRange * (CrFitLimHigh - 3.02) / (CrFitLimHigh - CrFitLimLow) ...
+                                       CrFitRange], ...
+                        'YTickLabel', [3.02 CrFitLimLow], ...
+                        'XLim', [1 size(MRS_struct.fids.data,2)], ...
+                        'YLim', [1 CrFitRange], ...
+                        'TickDir','out','box','off');
+                    if size(MRS_struct.fids.data,2) == 2
+                        set(gca, 'XTick', [1 2]);
+                    end
+                end
+                
+                % Bottom right
+                subplot(2,2,4);
+                axis off;
+                
+                if strcmp(MRS_struct.p.vendor, 'Siemens_rda')
+                    [~,tmp,tmp2] = fileparts(MRS_struct.metabfile{1,ii*2-1});
+                else
+                    [~,tmp,tmp2] = fileparts(MRS_struct.metabfile{1,ii});
+                end
+                fname = [tmp tmp2];
+                if length(fname) > 30
+                    fname = sprintf([fname(1:floor((end-1)/2)) '...\n     ' fname(ceil(end/2):end)]);
+                    shift = 0.02;
+                else
+                    shift = 0;
+                end
+                text(0.25, 1, 'Filename: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'HorizontalAlignment', 'right');
+                if MRS_struct.p.join
+                    text(0.275, 1+shift, [fname ' (+ ' num2str(MRS_struct.p.numFilesPerScan - 1) ' more)'], 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'Interpreter', 'none');
+                else
+                    text(0.275, 1+shift, fname, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'Interpreter', 'none');
+                end
+                
+                vendor = MRS_struct.p.vendor;
+                ind = strfind(vendor,'_');
+                if ~isempty(ind)
+                    vendor(ind:end) = '';
+                end
+                text(0.25, 0.9, 'Vendor: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'HorizontalAlignment', 'right');
+                text(0.275, 0.9, vendor, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'Interpreter', 'none');
+                
+                text(0.25, 0.8, 'TE/TR: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'HorizontalAlignment', 'right');
+                text(0.275, 0.8, [num2str(MRS_struct.p.TE(ii)) '/' num2str(MRS_struct.p.TR(ii)) ' ms'], 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'Interpreter', 'none');
+                
+                text(0.25, 0.7, 'Averages: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'HorizontalAlignment', 'right');
+                text(0.275, 0.7, num2str(MRS_struct.p.Navg(ii)), 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13);
+                
+                tmp = [num2str(MRS_struct.p.voxdim(ii,1)) ' \times ' num2str(MRS_struct.p.voxdim(ii,2)) ' \times ' num2str(MRS_struct.p.voxdim(ii,3)) ' mm^{3}'];
+                text(0.25, 0.6, 'Volume: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'HorizontalAlignment', 'right');
+                text(0.275, 0.6, tmp, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13);
+                
+                text(0.25, 0.5, 'Spectral width: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'HorizontalAlignment', 'right');
+                text(0.275, 0.5, [num2str(MRS_struct.p.sw(ii)) ' Hz'], 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'Interpreter', 'none');
+                
+                text(0.25, 0.4, 'Data points: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'HorizontalAlignment', 'right');
+                text(0.275, 0.4, [num2str(MRS_struct.p.npoints(ii)) ' (zero-filled to ' num2str(MRS_struct.p.ZeroFillTo(ii)) ')'], 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'Interpreter', 'none');
+                            
+                text(0.25, 0.3, 'Alignment: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'HorizontalAlignment', 'right');
+                if strcmp(MRS_struct.p.alignment, 'RobustSpecReg') && MRS_struct.p.use_prealign_ref
+                    text(0.275, 0.3, [MRS_struct.p.alignment ' (PreAlignRef)'], 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13);
+                else
+                    text(0.275, 0.3, MRS_struct.p.alignment, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13);
+                end
+                
+                tmp = [num2str(MRS_struct.p.LB) ' Hz'];
+                text(0.25, 0.2, 'Line-broadening: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'HorizontalAlignment', 'right');
+                text(0.275, 0.2, tmp, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13);
+                
+                text(0.25, 0.1, 'Rejects: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'HorizontalAlignment', 'right');
+                if MRS_struct.p.weighted_averaging
+                    text(0.275, 0.1, 'n/a - wgt. avg. used', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13);
+                else
+                    text(0.275, 0.1, num2str(sum(MRS_struct.out.reject{ii})), 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13);
+                end
+                
+                text(0.25, 0, 'LoadVer: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13, 'HorizontalAlignment', 'right');
+                text(0.275, 0, MRS_struct.version.load, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 13);
+                
+                % Save output as PDF
+                run_count = SavePDF(h, MRS_struct, ii, 1, kk, vox, mfilename, run_count);
+                
+                % Reorder structure
+                if isfield(MRS_struct, 'waterfile')
+                    structorder = {'version', 'ii', 'metabfile', ...
+                        'waterfile', 'p', 'fids', 'spec', 'out'};
+                else
+                    structorder = {'version', 'ii', 'metabfile', ...
+                        'p', 'fids', 'spec', 'out'};
+                end
+                MRS_struct = orderfields(MRS_struct, structorder);
+            end %% plotOutput
+
         end % end of output loop over voxels
         
     catch ME

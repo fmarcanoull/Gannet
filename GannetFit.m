@@ -1,5 +1,9 @@
 function MRS_struct = GannetFit(MRS_struct, varargin)
 
+%%% FM MODIFICACION 20240313 
+plotOutput = true;
+
+
 % Signal fitting in the frequency domain using nonlinear least-squares optimization
 
 if nargin == 0
@@ -15,8 +19,12 @@ else
     vox = MRS_struct.p.vox(1);
 end
 
+%%% FM MODIFICACION 20240313 
 if nargin < 2
     target = MRS_struct.p.target;
+elseif nargin > 2
+    target = MRS_struct.p.target;
+    plotOutput = varargin{2};
 elseif nargin > 1
     % varargin = Optional arguments if user wants to specify a target
     % metabolite, overwriting the parameter set in GannetPreInitialise.m
@@ -484,7 +492,7 @@ for kk = 1:length(vox)
                         MRS_struct.out.(vox{kk}).Glx.Area(ii) = (GaussModelParam(1)./sqrt(-GaussModelParam(2))*sqrt(pi)) + ...
                             (GaussModelParam(4)./sqrt(-GaussModelParam(5))*sqrt(pi));
                         Glxheight = max(GaussModelParam([1,4]));
-                        MRS_struct.out.(vox{kk}).Glx.FitError(ii) = 100 * std(residGlx) / Glxheight;
+                        MRS_struct.out.(vox{kk}).Glx.FitError(ii) = 100 * std(residGABA) / Glxheight;
                         sigma = sqrt(1/(2*(abs(GaussModelParam(2))))) + sqrt(1/(2*(abs(GaussModelParam(5)))));
                         MRS_struct.out.(vox{kk}).Glx.FWHM(ii) = abs((2*MRS_struct.p.LarmorFreq(ii))*sigma);
                         MRS_struct.out.(vox{kk}).Glx.ModelParam(ii,:) = GaussModelParam;
@@ -560,182 +568,182 @@ for kk = 1:length(vox)
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 %   1a. Initialize the output figure
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                
-                if ishandle(102)
-                    clf(102);
-                end
-                if MRS_struct.p.hide
-                    h = figure('Visible', 'off');
-                else
-                    h = figure(102);
-                end
-                % Open figure in center of screen
-                scr_sz = get(0,'ScreenSize');
-                fig_w = 1000;
-                fig_h = 707;
-                set(h,'Position',[(scr_sz(3)-fig_w)/2, (scr_sz(4)-fig_h)/2, fig_w, fig_h]);
-                set(h,'Color',[1 1 1]);
-                figTitle = 'GannetFit Output';
-                set(h,'Name',figTitle,'Tag',figTitle,'NumberTitle','off');
-                
-                % Spectra plot
-                subplot(2,2,1);
-                metabmin = min(real(DIFF(ii,plotbounds)));
-                metabmax = max(real(DIFF(ii,plotbounds)));
-                resmax = max(resid);
-                resid = resid + metabmin - resmax;
-                
-                switch target{jj}
-                    case 'GABA'
-                        residPlot = residPlot + metabmin - max(residPlot);
-                        residPlot2 = residPlot;
-                        residPlot2(weightRange) = NaN;
-                        hold on;
-                        plot(freq(plotbounds), real(DIFF(ii,plotbounds)), 'b', ...
-                            freq(freqbounds), GaussModel(GaussModelParam,freq(freqbounds)), 'r', ...
-                            freq(freqbounds), residPlot2, 'k');
-                        plot(freq(freqbounds(ChoRange)), residPlot(ChoRange), 'Color', [255 160 64]/255);
-                        hold off;
-                        set(gca,'XLim',[2.6 3.6]);
-                        
-                    case 'GSH'
-                        residPlot = residPlot + metabmin - max(residPlot);
-                        residPlot2 = residPlot;
-                        if length(MRS_struct.p.target) == 3 && all(ismember(MRS_struct.p.target,{'EtOH','GABA','GSH'}))
+                if plotOutput    
+                    if ishandle(102)
+                        clf(102);
+                    end
+                    if MRS_struct.p.hide
+                        h = figure('Visible', 'off');
+                    else
+                        h = figure(102);
+                    end
+                    % Open figure in center of screen
+                    scr_sz = get(0,'ScreenSize');
+                    fig_w = 1000;
+                    fig_h = 707;
+                    set(h,'Position',[(scr_sz(3)-fig_w)/2, (scr_sz(4)-fig_h)/2, fig_w, fig_h]);
+                    set(h,'Color',[1 1 1]);
+                    figTitle = 'GannetFit Output';
+                    set(h,'Name',figTitle,'Tag',figTitle,'NumberTitle','off');
+                    
+                    % Spectra plot
+                    subplot(2,2,1);
+                    metabmin = min(real(DIFF(ii,plotbounds)));
+                    metabmax = max(real(DIFF(ii,plotbounds)));
+                    resmax = max(resid);
+                    resid = resid + metabmin - resmax;
+                    
+                    switch target{jj}
+                        case 'GABA'
+                            residPlot = residPlot + metabmin - max(residPlot);
+                            residPlot2 = residPlot;
                             residPlot2(weightRange) = NaN;
                             hold on;
-                            plot(freq(plotbounds), real(DIFF(ii,plotbounds)), 'b' , ...
-                                freq(freqbounds), GSHgaussModel(GaussModelParam,freq(freqbounds)), 'r', ...
+                            plot(freq(plotbounds), real(DIFF(ii,plotbounds)), 'b', ...
+                                freq(freqbounds), GaussModel(GaussModelParam,freq(freqbounds)), 'r', ...
                                 freq(freqbounds), residPlot2, 'k');
                             plot(freq(freqbounds(ChoRange)), residPlot(ChoRange), 'Color', [255 160 64]/255);
                             hold off;
-                        else
-                            plot(freq(plotbounds), real(DIFF(ii,plotbounds)), 'b' , ...
-                                freq(freqbounds), GSHgaussModel(GaussModelParam,freq(freqbounds)), 'r', ...
+                            set(gca,'XLim',[2.6 3.6]);
+                            
+                        case 'GSH'
+                            residPlot = residPlot + metabmin - max(residPlot);
+                            residPlot2 = residPlot;
+                            if length(MRS_struct.p.target) == 3 && all(ismember(MRS_struct.p.target,{'EtOH','GABA','GSH'}))
+                                residPlot2(weightRange) = NaN;
+                                hold on;
+                                plot(freq(plotbounds), real(DIFF(ii,plotbounds)), 'b' , ...
+                                    freq(freqbounds), GSHgaussModel(GaussModelParam,freq(freqbounds)), 'r', ...
+                                    freq(freqbounds), residPlot2, 'k');
+                                plot(freq(freqbounds(ChoRange)), residPlot(ChoRange), 'Color', [255 160 64]/255);
+                                hold off;
+                            else
+                                plot(freq(plotbounds), real(DIFF(ii,plotbounds)), 'b' , ...
+                                    freq(freqbounds), GSHgaussModel(GaussModelParam,freq(freqbounds)), 'r', ...
+                                    freq(freqbounds), residPlot2, 'k');
+                            end
+                            set(gca, 'XLim', [1.8 4.2]);
+                            
+                        case 'Lac'
+                            hold on;
+                            p1 = plot(freq(plotbounds), real(DIFF(ii,plotbounds)), 'k');
+                            p2 = plot(freq(freqbounds), LacModel(BHBmodelParam,freq(freqbounds)), 'Color', [31 120 180]/255, 'LineWidth', 1);
+                            p3 = plot(freq(freqbounds), LacModel(LacModelParam,freq(freqbounds)), 'Color', [51 160 44]/255, 'LineWidth', 1);
+                            p4 = plot(freq(freqbounds), LacModel(LacPlusModelParam,freq(freqbounds)), 'r', 'LineWidth', 1);
+                            p5 = plot(freq(freqbounds), resid, 'k');
+                            hold off;
+                            set(gca, 'XLim', [0.7 1.9], 'XTick', 0:0.25:10);
+                            
+                        case 'Glx'
+                            plot(freq(plotbounds), real(DIFF(ii,plotbounds)), 'b', ...
+                                freq(freqbounds), DoubleGaussModel(GaussModelParam,freq(freqbounds)), 'r', ...
+                                freq(freqbounds), resid, 'k');
+                            set(gca,'XLim',[3.4 4.2]);
+                            
+                        case 'GABAGlx'
+                            residPlot  = residPlot + metabmin - max(residPlot);
+                            residPlot2 = residPlot;
+                            residPlot2(weightRange) = NaN;
+                            hold on;
+                            plot(freq(plotbounds), real(DIFF(ii,plotbounds)), 'b', ...
+                                freq(freqbounds), GABAGlxModel(GaussModelParam,freq(freqbounds)), 'r', ...
                                 freq(freqbounds), residPlot2, 'k');
-                        end
-                        set(gca, 'XLim', [1.8 4.2]);
-                        
-                    case 'Lac'
-                        hold on;
-                        p1 = plot(freq(plotbounds), real(DIFF(ii,plotbounds)), 'k');
-                        p2 = plot(freq(freqbounds), LacModel(BHBmodelParam,freq(freqbounds)), 'Color', [31 120 180]/255, 'LineWidth', 1);
-                        p3 = plot(freq(freqbounds), LacModel(LacModelParam,freq(freqbounds)), 'Color', [51 160 44]/255, 'LineWidth', 1);
-                        p4 = plot(freq(freqbounds), LacModel(LacPlusModelParam,freq(freqbounds)), 'r', 'LineWidth', 1);
-                        p5 = plot(freq(freqbounds), resid, 'k');
-                        hold off;
-                        set(gca, 'XLim', [0.7 1.9], 'XTick', 0:0.25:10);
-                        
-                    case 'Glx'
-                        plot(freq(plotbounds), real(DIFF(ii,plotbounds)), 'b', ...
-                            freq(freqbounds), DoubleGaussModel(GaussModelParam,freq(freqbounds)), 'r', ...
-                            freq(freqbounds), resid, 'k');
-                        set(gca,'XLim',[3.4 4.2]);
-                        
-                    case 'GABAGlx'
-                        residPlot  = residPlot + metabmin - max(residPlot);
-                        residPlot2 = residPlot;
-                        residPlot2(weightRange) = NaN;
-                        hold on;
-                        plot(freq(plotbounds), real(DIFF(ii,plotbounds)), 'b', ...
-                            freq(freqbounds), GABAGlxModel(GaussModelParam,freq(freqbounds)), 'r', ...
-                            freq(freqbounds), residPlot2, 'k');
-                        % Plot weighted portion of residuals in different color
-                        if MRS_struct.p.HERMES && any(strcmp(MRS_struct.p.vendor,{'Philips','Philips_data','Philips_raw'}))
-                            plot(freq(freqbounds(ChoRange)), residPlot(ChoRange), 'Color', [255 160 64]/255);
-                            plot(freq(freqbounds(GlxDownfieldRange)), residPlot(GlxDownfieldRange), 'Color', [255 160 64]/255);
-                        else
-                            plot(freq(freqbounds(ChoRange)), residPlot(ChoRange), 'Color', [255 160 64]/255);
-                        end
-                        hold off;
-                        set(gca,'XLim',[2.7 4.2]);
-                        
-                    case 'EtOH'
-                        residPlot = residPlot + metabmin - max(residPlot);
-                        residPlot2 = residPlot;
-                        residPlot2(weightRange) = NaN;
-                        hold on;
-                        plot(freq(plotbounds), real(DIFF(ii,plotbounds)), 'b', ...
-                            freq(freqbounds), EtOHModel(LorentzModelParam,freq(freqbounds)), 'r', ...
-                            freq(freqbounds), residPlot2, 'k');
-                        plot(freq(freqbounds(LacRange)), residPlot(LacRange), 'Color', [255 160 64]/255);
-                        hold off;
-                        set(gca,'XLim',[0.4 1.9]);
-                end
-                
-                % From here on is cosmetic - adding labels etc.
-                switch target{jj}
-                    case 'GABA'
-                        text(3, metabmax/4, target{jj}, 'HorizontalAlignment', 'center');
-                        labelbounds = freq <= 2.4 & freq >= 2;
-                        tailtop = max(real(DIFF(ii,labelbounds)));
-                        tailbottom = min(real(DIFF(ii,labelbounds)));
-                        text(2.8, min(resid), 'residual', 'HorizontalAlignment', 'left');
-                        text(2.8, tailtop + metabmax/20, 'data', 'Color', [0 0 1]);
-                        text(2.8, tailbottom - metabmax/20, 'model', 'Color', [1 0 0]);
-                        if length(MRS_struct.p.target) ~= 3
+                            % Plot weighted portion of residuals in different color
+                            if MRS_struct.p.HERMES && any(strcmp(MRS_struct.p.vendor,{'Philips','Philips_data','Philips_raw'}))
+                                plot(freq(freqbounds(ChoRange)), residPlot(ChoRange), 'Color', [255 160 64]/255);
+                                plot(freq(freqbounds(GlxDownfieldRange)), residPlot(GlxDownfieldRange), 'Color', [255 160 64]/255);
+                            else
+                                plot(freq(freqbounds(ChoRange)), residPlot(ChoRange), 'Color', [255 160 64]/255);
+                            end
+                            hold off;
+                            set(gca,'XLim',[2.7 4.2]);
+                            
+                        case 'EtOH'
+                            residPlot = residPlot + metabmin - max(residPlot);
+                            residPlot2 = residPlot;
+                            residPlot2(weightRange) = NaN;
+                            hold on;
+                            plot(freq(plotbounds), real(DIFF(ii,plotbounds)), 'b', ...
+                                freq(freqbounds), EtOHModel(LorentzModelParam,freq(freqbounds)), 'r', ...
+                                freq(freqbounds), residPlot2, 'k');
+                            plot(freq(freqbounds(LacRange)), residPlot(LacRange), 'Color', [255 160 64]/255);
+                            hold off;
+                            set(gca,'XLim',[0.4 1.9]);
+                    end
+                    
+                    % From here on is cosmetic - adding labels etc.
+                    switch target{jj}
+                        case 'GABA'
+                            text(3, metabmax/4, target{jj}, 'HorizontalAlignment', 'center');
+                            labelbounds = freq <= 2.4 & freq >= 2;
+                            tailtop = max(real(DIFF(ii,labelbounds)));
+                            tailbottom = min(real(DIFF(ii,labelbounds)));
+                            text(2.8, min(resid), 'residual', 'HorizontalAlignment', 'left');
+                            text(2.8, tailtop + metabmax/20, 'data', 'Color', [0 0 1]);
+                            text(2.8, tailbottom - metabmax/20, 'model', 'Color', [1 0 0]);
+                            if length(MRS_struct.p.target) ~= 3
+                                text(3.2, min(residPlot) - 0.5*abs(max(residPlot)), 'down-weighted', 'Color', [255 160 64]/255, 'HorizontalAlignment', 'center');
+                            end
+                            
+                        case 'GSH'
+                            text(2.95, maxinGSH+maxinGSH/4, target{jj}, 'HorizontalAlignment', 'center');
+                            labelbounds = freq <= 2.4 & freq >= 1.75;
+                            tailtop = max(real(DIFF(ii,labelbounds)));
+                            tailbottom = min(real(DIFF(ii,labelbounds)));
+                            text(2.25, min(resid), 'residual', 'HorizontalAlignment', 'left');
+                            text(2.25, tailtop + metabmax/20, 'data', 'Color', [0 0 1]);
+                            text(2.45, tailbottom - 20*metabmax/20, 'model', 'Color', [1 0 0]);
+                            if length(MRS_struct.p.target) == 3 && all(ismember(MRS_struct.p.target,{'EtOH','GABA','GSH'}))
+                                text(3.3, max(residPlot) + 0.5*abs(max(residPlot) - min(residPlot)), 'down-weighted', 'Color', [255 160 64]/255, 'HorizontalAlignment', 'right');
+                            end
+                            
+                        case 'Lac'
+    %                         text(1.27, metabmax/3.5, 'Lac+', 'HorizontalAlignment', 'center');
+    %                         labelbounds = freq <= 0.8 & freq >= 0.42;
+    %                         tailtop = max(real(DIFF(ii,labelbounds)));
+    %                         tailbottom = min(real(DIFF(ii,labelbounds)));
+    %                         text(0.44, mean(real(DIFF(ii,labelbounds))) + 4*std(real(DIFF(ii,labelbounds))), 'data', 'HorizontalAlignment', 'right');
+    %                         text(0.44, mean(resid) - 4*std(resid), 'residual', 'HorizontalAlignment', 'right');
+    %                         text(0.85, tailbottom, 'model', 'Color', [1 0 0]);
+                            legend([p1, p2, p3, p4, p5], {'data','BHB+','Lac+','model','residual'}, 'box', 'off', 'Location', 'northeast');
+                            
+                        case 'Glx'
+                            text(3.8, metabmax/4, target{jj}, 'HorizontalAlignment', 'center');
+                            labelbounds = freq <= 3.6 & freq >= 3.4;
+                            tailtop = max(real(DIFF(ii,labelbounds)));
+                            tailbottom = min(real(DIFF(ii,labelbounds)));
+                            text(3.5, min(resid),'residual', 'HorizontalAlignment', 'left');
+                            text(3.5, tailtop + metabmax/20, 'data', 'Color', [0 0 1]);
+                            text(3.5, tailbottom - metabmax/20, 'model', 'Color', [1 0 0]);
+                            
+                        case 'GABAGlx'
+                            text(3, metabmax/4, 'GABA', 'HorizontalAlignment', 'center');
+                            text(3.755, metabmax/4, 'Glx', 'HorizontalAlignment', 'center');
+                            text(2.8, min(resid), 'residual', 'HorizontalAlignment', 'left');
+                            labelbounds = freq <= 2.8 & freq >= 2.7;
+                            tailtop = max(real(DIFF(ii,labelbounds)));
+                            tailbottom = min(real(DIFF(ii,labelbounds)));
+                            text(2.8, tailtop + metabmax/20, 'data', 'Color', [0 0 1]);
+                            text(2.8, tailbottom - metabmax/20, 'model', 'Color', [1 0 0]);
                             text(3.2, min(residPlot) - 0.5*abs(max(residPlot)), 'down-weighted', 'Color', [255 160 64]/255, 'HorizontalAlignment', 'center');
-                        end
-                        
-                    case 'GSH'
-                        text(2.95, maxinGSH+maxinGSH/4, target{jj}, 'HorizontalAlignment', 'center');
-                        labelbounds = freq <= 2.4 & freq >= 1.75;
-                        tailtop = max(real(DIFF(ii,labelbounds)));
-                        tailbottom = min(real(DIFF(ii,labelbounds)));
-                        text(2.25, min(resid), 'residual', 'HorizontalAlignment', 'left');
-                        text(2.25, tailtop + metabmax/20, 'data', 'Color', [0 0 1]);
-                        text(2.45, tailbottom - 20*metabmax/20, 'model', 'Color', [1 0 0]);
-                        if length(MRS_struct.p.target) == 3 && all(ismember(MRS_struct.p.target,{'EtOH','GABA','GSH'}))
-                            text(3.3, max(residPlot) + 0.5*abs(max(residPlot) - min(residPlot)), 'down-weighted', 'Color', [255 160 64]/255, 'HorizontalAlignment', 'right');
-                        end
-                        
-                    case 'Lac'
-%                         text(1.27, metabmax/3.5, 'Lac+', 'HorizontalAlignment', 'center');
-%                         labelbounds = freq <= 0.8 & freq >= 0.42;
-%                         tailtop = max(real(DIFF(ii,labelbounds)));
-%                         tailbottom = min(real(DIFF(ii,labelbounds)));
-%                         text(0.44, mean(real(DIFF(ii,labelbounds))) + 4*std(real(DIFF(ii,labelbounds))), 'data', 'HorizontalAlignment', 'right');
-%                         text(0.44, mean(resid) - 4*std(resid), 'residual', 'HorizontalAlignment', 'right');
-%                         text(0.85, tailbottom, 'model', 'Color', [1 0 0]);
-                        legend([p1, p2, p3, p4, p5], {'data','BHB+','Lac+','model','residual'}, 'box', 'off', 'Location', 'northeast');
-                        
-                    case 'Glx'
-                        text(3.8, metabmax/4, target{jj}, 'HorizontalAlignment', 'center');
-                        labelbounds = freq <= 3.6 & freq >= 3.4;
-                        tailtop = max(real(DIFF(ii,labelbounds)));
-                        tailbottom = min(real(DIFF(ii,labelbounds)));
-                        text(3.5, min(resid),'residual', 'HorizontalAlignment', 'left');
-                        text(3.5, tailtop + metabmax/20, 'data', 'Color', [0 0 1]);
-                        text(3.5, tailbottom - metabmax/20, 'model', 'Color', [1 0 0]);
-                        
-                    case 'GABAGlx'
-                        text(3, metabmax/4, 'GABA', 'HorizontalAlignment', 'center');
-                        text(3.755, metabmax/4, 'Glx', 'HorizontalAlignment', 'center');
-                        text(2.8, min(resid), 'residual', 'HorizontalAlignment', 'left');
-                        labelbounds = freq <= 2.8 & freq >= 2.7;
-                        tailtop = max(real(DIFF(ii,labelbounds)));
-                        tailbottom = min(real(DIFF(ii,labelbounds)));
-                        text(2.8, tailtop + metabmax/20, 'data', 'Color', [0 0 1]);
-                        text(2.8, tailbottom - metabmax/20, 'model', 'Color', [1 0 0]);
-                        text(3.2, min(residPlot) - 0.5*abs(max(residPlot)), 'down-weighted', 'Color', [255 160 64]/255, 'HorizontalAlignment', 'center');
-                        
-                    case 'EtOH'
-                        text(1.45, metabmax/4, target{jj}, 'HorizontalAlignment', 'center');
-                        labelbounds = freq <= 0.9 & freq >= 0.5;
-                        tailtop = max(real(DIFF(ii,labelbounds)));
-                        tailbottom = min(real(DIFF(ii,labelbounds)));
-                        text(0.6, min(resid),'residual', 'HorizontalAlignment', 'left');
-                        text(0.8, tailtop + metabmax/20, 'data', 'Color', [0 0 1]);
-                        text(0.8, tailbottom - metabmax/20, 'model', 'Color', [1 0 0]);
-                        text(1.4, max(residPlot2) + 0.5*abs(max(residPlot2)), 'down-weighted', 'Color', [255 160 64]/255, 'HorizontalAlignment', 'center');
+                            
+                        case 'EtOH'
+                            text(1.45, metabmax/4, target{jj}, 'HorizontalAlignment', 'center');
+                            labelbounds = freq <= 0.9 & freq >= 0.5;
+                            tailtop = max(real(DIFF(ii,labelbounds)));
+                            tailbottom = min(real(DIFF(ii,labelbounds)));
+                            text(0.6, min(resid),'residual', 'HorizontalAlignment', 'left');
+                            text(0.8, tailtop + metabmax/20, 'data', 'Color', [0 0 1]);
+                            text(0.8, tailbottom - metabmax/20, 'model', 'Color', [1 0 0]);
+                            text(1.4, max(residPlot2) + 0.5*abs(max(residPlot2)), 'down-weighted', 'Color', [255 160 64]/255, 'HorizontalAlignment', 'center');
+                    end
+                    
+                    title('Difference spectrum and model fit');
+                    xlabel('ppm');
+                    set(gca,'XDir','reverse','TickDir','out','Box','off');
+                    set(get(gca,'YAxis'),'Visible','off');                    
                 end
-                
-                title('Difference spectrum and model fit');
-                xlabel('ppm');
-                set(gca,'XDir','reverse','TickDir','out','Box','off');
-                set(get(gca,'YAxis'),'Visible','off');
-                
-                
+
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 %   2.  Water Fit
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -796,23 +804,25 @@ for kk = 1:length(vox)
                     MRS_struct.out.(vox{kk}).water.SNR(ii) = abs(waterheight) / noiseSigma_Water;
                     
                     % Water spectrum plot
-                    hb = subplot(2,2,3);
-                    watmin = min(real(WaterData(ii,:)));
-                    watmax = max(real(WaterData(ii,:)));
-                    residw = residw + watmin - max(residw);
-                    plot(freq(freqbounds), real(WaterData(ii,freqbounds)), 'b', ...
-                        freq(freqbounds), real(LorentzGaussModelP(LGPModelParam,freq(freqbounds))), 'r', ...
-                        freq(freqbounds), residw, 'k');
-                    set(gca,'XDir','reverse','TickDir','out','Box','off','XTick',4.2:0.2:5.2);
-                    xlim([4.2 5.2]);
-                    set(get(gca,'YAxis'),'Visible','off');
-                    % Add on some labels
-                    text(4.8, watmax/2, 'Water', 'HorizontalAlignment', 'right');
-                    labelfreq = freq(freqbounds);
-                    rlabelbounds = labelfreq <= 4.4 & labelfreq >= 4.25;
-                    axis_bottom = axis;
-                    text(4.4, max(min(residw(rlabelbounds)) - 0.05 * watmax, axis_bottom(3)), 'residual', 'HorizontalAlignment', 'left');
-                    
+                    if plotOutput
+                        hb = subplot(2,2,3);
+                        watmin = min(real(WaterData(ii,:)));
+                        watmax = max(real(WaterData(ii,:)));
+                        residw = residw + watmin - max(residw);
+                        plot(freq(freqbounds), real(WaterData(ii,freqbounds)), 'b', ...
+                            freq(freqbounds), real(LorentzGaussModelP(LGPModelParam,freq(freqbounds))), 'r', ...
+                            freq(freqbounds), residw, 'k');
+                        set(gca,'XDir','reverse','TickDir','out','Box','off','XTick',4.2:0.2:5.2);
+                        xlim([4.2 5.2]);
+                        set(get(gca,'YAxis'),'Visible','off');
+                        % Add on some labels
+                        text(4.8, watmax/2, 'Water', 'HorizontalAlignment', 'right');
+                        labelfreq = freq(freqbounds);
+                        rlabelbounds = labelfreq <= 4.4 & labelfreq >= 4.25;
+                        axis_bottom = axis;
+                        text(4.4, max(min(residw(rlabelbounds)) - 0.05 * watmax, axis_bottom(3)), 'residual', 'HorizontalAlignment', 'left');
+                    end
+
                     % Root sum square fit error and concentration in institutional units
                     switch target{jj}
                         case 'GABA'
@@ -1055,355 +1065,357 @@ for kk = 1:length(vox)
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 %   5. Build GannetFit Output
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                
-                Crmin = min(real(Cr_OFF(freqboundsCr)));
-                Crmax = max(real(Cr_OFF(freqboundsCr)));
-                resmaxCr = max(residCr);
-                residCr = residCr + Crmin - resmaxCr;
-                if strcmp(MRS_struct.p.reference,'H2O')
-                    hd = subplot(2,2,4);
-                    plot(freq, real(Cr_OFF), 'b', ...
-                        freq(freqboundsChoCr), real(TwoLorentzModel(MRS_struct.out.(vox{kk}).ChoCr.ModelParam(ii,:),freq(freqboundsChoCr))), 'r', ...
-                        freq(freqboundsChoCr), real(TwoLorentzModel([MRS_struct.out.(vox{kk}).ChoCr.ModelParam(ii,1:(end-1)) 0],freq(freqboundsChoCr))), 'r', ...
-                        freq(freqboundsCr), residCr, 'k');
-                    set(gca,'XDir','reverse','TickDir','out','Box','off','XTick',2.6:0.2:3.6);
-                    xlim([2.6 3.6]);
-                    set(get(gca,'YAxis'),'Visible','off');
-                    xlabel('ppm');
-                    text(2.94, Crmax*0.75, 'Creatine', 'HorizontalAlignment', 'left');
-                    subplot(2,2,3);
-                    [~,hi] = inset(hb,hd);
-                    set(hi,'fontsize',6);
-                    insert = get(hi,'pos');
-                    axi = get(hb,'pos');
-                    set(hi,'pos',[axi(1)+axi(3)-insert(3) insert(2:4)]);
-                    text(4.8, watmax/2, 'Water', 'HorizontalAlignment', 'right');
-                    set(gca,'XDir','reverse','TickDir','out','Box','off');
-                    set(get(gca,'YAxis'),'Visible','off');
-                    xlabel('ppm');
-                    title('Reference signals');
-                else
-                    hb = subplot(2,2,3);
-                    plot(freq, real(Cr_OFF), 'b', ...
-                        freq(freqboundsChoCr), real(TwoLorentzModel(MRS_struct.out.(vox{kk}).ChoCr.ModelParam(ii,:),freq(freqboundsChoCr))), 'r', ...
-                        freq(freqboundsChoCr), real(TwoLorentzModel([MRS_struct.out.(vox{kk}).ChoCr.ModelParam(ii,1:(end-1)) 0],freq(freqboundsChoCr))), 'r', ...
-                        freq(freqboundsCr), residCr, 'k');
-                    set(gca,'XDir','reverse','TickDir','out','Box','off','XTick',2.6:0.2:3.6);
-                    set(get(gca,'YAxis'),'Visible','off');
-                    xlim([2.6 3.6]);
-                    crlabelbounds = freq(freqboundsCr) <= 3.12 & freq(freqboundsCr) >= 2.72;
-                    hcres = text(3, max(residCr(crlabelbounds)) + 0.05*Crmax, 'residual');
-                    set(hcres,'HorizontalAlignment', 'center');
-                    text(2.7,0.1*Crmax,'data','Color',[0 0 1]);
-                    text(2.7,0.01*Crmax,'model','Color',[1 0 0]);
-                    text(2.94,Crmax*0.75,'Creatine');
-                    xlabel('ppm');
-                    title('Reference signal');
-                end
-                
-                if any(strcmp('mask',fieldnames(MRS_struct)))
-                    hc = subplot(2,2,2);
-                    set(hc,'pos',[0.52 0.52 0.42 0.42]) % move the axes slightly
-                    size_max = size(MRS_struct.mask.img{ii},1);
-                    imagesc(MRS_struct.mask.img{ii}(:,size_max+(1:size_max)));
-                    colormap('gray');
-                    caxis([0 1]); %#ok<*CAXIS> 
-                    axis equal tight off;
-                    subplot(2,2,4,'replace');
-                else
-                    subplot(3,2,[2 4]);
-                    axis off;
-                end
-                
-                % Cleaner text alignment; move GABA/Glx to separate lines
-                text_pos = 0.95; % A variable to determine y-position of text on printout on figure
-                shift = 0.06;
-                
-                % 1. Filename
-                if strcmp(MRS_struct.p.vendor,'Siemens_rda')
-                    [~,tmp1,tmp2] = fileparts(MRS_struct.metabfile{1,ii*2-1});
-                else
-                    [~,tmp1,tmp2] = fileparts(MRS_struct.metabfile{1,ii});
-                end
-                fname = [tmp1 tmp2];
-                if length(fname) > 30
-                    fname = sprintf([fname(1:floor((end-1)/2)) '...\n     ' fname(ceil(end/2):end)]);
-                    shift2 = 0.02;
-                else
-                    shift2 = 0;
-                end
-                text(0.4, text_pos, 'Filename: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                if MRS_struct.p.join
-                    text(0.425, text_pos+shift2, [fname ' (+ ' num2str(MRS_struct.p.numFilesPerScan - 1) ' more)'], 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'Interpreter', 'none');
-                else
-                    text(0.425, text_pos+shift2, fname, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'Interpreter', 'none');
-                end
-                
-                % 2a. Area
-                text(0.4, text_pos-shift, 'Area ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'right');
-                
-                switch target{jj}
-                    case 'GABA'
-                        tmp1 = 'GABA+: ';
-                        tmp2 = sprintf('%.3g', MRS_struct.out.(vox{kk}).GABA.Area(ii));
-                    case 'Glx'
-                        tmp1 = 'Glx: ';
-                        tmp2 = sprintf('%.3g', MRS_struct.out.(vox{kk}).Glx.Area(ii));
-                    case 'GABAGlx'
-                        tmp1 = 'GABA+: ';
-                        tmp2 = sprintf('%.3g', MRS_struct.out.(vox{kk}).GABA.Area(ii));
-                        tmp3 = 'Glx: ';
-                        tmp4 = sprintf('%.3g', MRS_struct.out.(vox{kk}).Glx.Area(ii));
-                    case 'GSH'
-                        tmp1 = 'GSH: ';
-                        tmp2 = sprintf('%.3g', MRS_struct.out.(vox{kk}).(target{jj}).Area(ii));
-                    case 'Lac'
-                        tmp1 = 'Lac+: ';
-                        tmp2 = sprintf('%.3g', MRS_struct.out.(vox{kk}).(target{jj}).Area(ii));
-                    case 'EtOH'
-                        tmp1 = 'EtOH: ';
-                        tmp2 = sprintf('%.3g', MRS_struct.out.(vox{kk}).(target{jj}).Area(ii));
-                end
-                
-                text(0.4, text_pos-2*shift, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                text(0.425, text_pos-2*shift, tmp2, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                
-                if strcmp(target{jj},'GABAGlx')
-                    text(0.4, text_pos-3*shift, tmp3, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                    text(0.425, text_pos-3*shift, tmp4, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                    n = 0;
-                else
-                    n = shift;
-                end
-                
-                if strcmp(MRS_struct.p.reference,'H2O')
+                if (plotOutput)
+                    Crmin = min(real(Cr_OFF(freqboundsCr)));
+                    Crmax = max(real(Cr_OFF(freqboundsCr)));
+                    resmaxCr = max(residCr);
+                    residCr = residCr + Crmin - resmaxCr;
+                    if strcmp(MRS_struct.p.reference,'H2O')
+                        hd = subplot(2,2,4);
+                        plot(freq, real(Cr_OFF), 'b', ...
+                            freq(freqboundsChoCr), real(TwoLorentzModel(MRS_struct.out.(vox{kk}).ChoCr.ModelParam(ii,:),freq(freqboundsChoCr))), 'r', ...
+                            freq(freqboundsChoCr), real(TwoLorentzModel([MRS_struct.out.(vox{kk}).ChoCr.ModelParam(ii,1:(end-1)) 0],freq(freqboundsChoCr))), 'r', ...
+                            freq(freqboundsCr), residCr, 'k');
+                        set(gca,'XDir','reverse','TickDir','out','Box','off','XTick',2.6:0.2:3.6);
+                        xlim([2.6 3.6]);
+                        set(get(gca,'YAxis'),'Visible','off');
+                        xlabel('ppm');
+                        text(2.94, Crmax*0.75, 'Creatine', 'HorizontalAlignment', 'left');
+                        subplot(2,2,3);
+                        [~,hi] = inset(hb,hd);
+                        set(hi,'fontsize',6);
+                        insert = get(hi,'pos');
+                        axi = get(hb,'pos');
+                        set(hi,'pos',[axi(1)+axi(3)-insert(3) insert(2:4)]);
+                        text(4.8, watmax/2, 'Water', 'HorizontalAlignment', 'right');
+                        set(gca,'XDir','reverse','TickDir','out','Box','off');
+                        set(get(gca,'YAxis'),'Visible','off');
+                        xlabel('ppm');
+                        title('Reference signals');
+                    else
+                        hb = subplot(2,2,3);
+                        plot(freq, real(Cr_OFF), 'b', ...
+                            freq(freqboundsChoCr), real(TwoLorentzModel(MRS_struct.out.(vox{kk}).ChoCr.ModelParam(ii,:),freq(freqboundsChoCr))), 'r', ...
+                            freq(freqboundsChoCr), real(TwoLorentzModel([MRS_struct.out.(vox{kk}).ChoCr.ModelParam(ii,1:(end-1)) 0],freq(freqboundsChoCr))), 'r', ...
+                            freq(freqboundsCr), residCr, 'k');
+                        set(gca,'XDir','reverse','TickDir','out','Box','off','XTick',2.6:0.2:3.6);
+                        set(get(gca,'YAxis'),'Visible','off');
+                        xlim([2.6 3.6]);
+                        crlabelbounds = freq(freqboundsCr) <= 3.12 & freq(freqboundsCr) >= 2.72;
+                        hcres = text(3, max(residCr(crlabelbounds)) + 0.05*Crmax, 'residual');
+                        set(hcres,'HorizontalAlignment', 'center');
+                        text(2.7,0.1*Crmax,'data','Color',[0 0 1]);
+                        text(2.7,0.01*Crmax,'model','Color',[1 0 0]);
+                        text(2.94,Crmax*0.75,'Creatine');
+                        xlabel('ppm');
+                        title('Reference signal');
+                    end
                     
-                    % 2b. Area (Water / Cr)
-                    tmp1 = sprintf('%.3g', MRS_struct.out.(vox{kk}).water.Area(ii));
-                    tmp2 = sprintf('%.3g', MRS_struct.out.(vox{kk}).Cr.Area(ii));
+                    if any(strcmp('mask',fieldnames(MRS_struct)))
+                        hc = subplot(2,2,2);
+                        set(hc,'pos',[0.52 0.52 0.42 0.42]) % move the axes slightly
+                        size_max = size(MRS_struct.mask.img{ii},1);
+                        imagesc(MRS_struct.mask.img{ii}(:,size_max+(1:size_max)));
+                        colormap('gray');
+                        caxis([0 1]); %#ok<*CAXIS> 
+                        axis equal tight off;
+                        subplot(2,2,4,'replace');
+                    else
+                        subplot(3,2,[2 4]);
+                        axis off;
+                    end
                     
-                    text(0.4, text_pos-4*shift+n, 'Water: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                    text(0.425, text_pos-4*shift+n, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                    text(0.4, text_pos-5*shift+n, 'Cr: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                    text(0.425, text_pos-5*shift+n, tmp2, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                    % Cleaner text alignment; move GABA/Glx to separate lines
+                    text_pos = 0.95; % A variable to determine y-position of text on printout on figure
+                    shift = 0.06;
                     
-                    % 3. Linewidth
-                    text(0.4, text_pos-6*shift+n, 'Linewidth ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'right');
+                    % 1. Filename
+                    if strcmp(MRS_struct.p.vendor,'Siemens_rda')
+                        [~,tmp1,tmp2] = fileparts(MRS_struct.metabfile{1,ii*2-1});
+                    else
+                        [~,tmp1,tmp2] = fileparts(MRS_struct.metabfile{1,ii});
+                    end
+                    fname = [tmp1 tmp2];
+                    if length(fname) > 30
+                        fname = sprintf([fname(1:floor((end-1)/2)) '...\n     ' fname(ceil(end/2):end)]);
+                        shift2 = 0.02;
+                    else
+                        shift2 = 0;
+                    end
+                    text(0.4, text_pos, 'Filename: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                    if MRS_struct.p.join
+                        text(0.425, text_pos+shift2, [fname ' (+ ' num2str(MRS_struct.p.numFilesPerScan - 1) ' more)'], 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'Interpreter', 'none');
+                    else
+                        text(0.425, text_pos+shift2, fname, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'Interpreter', 'none');
+                    end
                     
-                    tmp1 = sprintf('%.2f Hz', MRS_struct.out.(vox{kk}).water.FWHM(ii));
-                    tmp2 = sprintf('%.2f Hz', MRS_struct.out.(vox{kk}).Cr.FWHM(ii));
-                    text(0.4, text_pos-7*shift+n, 'Water: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                    text(0.425, text_pos-7*shift+n, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                    text(0.4, text_pos-8*shift+n, 'Cr: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                    text(0.425, text_pos-8*shift+n, tmp2, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                                        
-                    % 4. SNR
-                    text(0.4, text_pos-9*shift+n, 'SNR ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'right');
-                    
-                    tmp1 = sprintf('%.0f', MRS_struct.out.(vox{kk}).water.SNR(ii));
-                    tmp2 = sprintf('%.0f', MRS_struct.out.(vox{kk}).Cr.SNR(ii));
-                    text(0.4, text_pos-10*shift+n, 'Water: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                    text(0.425, text_pos-10*shift+n, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                    text(0.4, text_pos-11*shift+n, 'Cr: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                    text(0.425, text_pos-11*shift+n, tmp2, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                    
-                    % 5a. Fit Error
-                    text(0.4, text_pos-12*shift+n, 'Fit error ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'right');
+                    % 2a. Area
+                    text(0.4, text_pos-shift, 'Area ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'right');
                     
                     switch target{jj}
+                        case 'GABA'
+                            tmp1 = 'GABA+: ';
+                            tmp2 = sprintf('%.3g', MRS_struct.out.(vox{kk}).GABA.Area(ii));
+                        case 'Glx'
+                            tmp1 = 'Glx: ';
+                            tmp2 = sprintf('%.3g', MRS_struct.out.(vox{kk}).Glx.Area(ii));
+                        case 'GABAGlx'
+                            tmp1 = 'GABA+: ';
+                            tmp2 = sprintf('%.3g', MRS_struct.out.(vox{kk}).GABA.Area(ii));
+                            tmp3 = 'Glx: ';
+                            tmp4 = sprintf('%.3g', MRS_struct.out.(vox{kk}).Glx.Area(ii));
+                        case 'GSH'
+                            tmp1 = 'GSH: ';
+                            tmp2 = sprintf('%.3g', MRS_struct.out.(vox{kk}).(target{jj}).Area(ii));
+                        case 'Lac'
+                            tmp1 = 'Lac+: ';
+                            tmp2 = sprintf('%.3g', MRS_struct.out.(vox{kk}).(target{jj}).Area(ii));
+                        case 'EtOH'
+                            tmp1 = 'EtOH: ';
+                            tmp2 = sprintf('%.3g', MRS_struct.out.(vox{kk}).(target{jj}).Area(ii));
+                    end
+                    
+                    text(0.4, text_pos-2*shift, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                    text(0.425, text_pos-2*shift, tmp2, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                    
+                    if strcmp(target{jj},'GABAGlx')
+                        text(0.4, text_pos-3*shift, tmp3, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                        text(0.425, text_pos-3*shift, tmp4, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                        n = 0;
+                    else
+                        n = shift;
+                    end
+                    
+                    if strcmp(MRS_struct.p.reference,'H2O')
                         
-                        case {'GABA','Glx','GSH','Lac','EtOH'}
+                        % 2b. Area (Water / Cr)
+                        tmp1 = sprintf('%.3g', MRS_struct.out.(vox{kk}).water.Area(ii));
+                        tmp2 = sprintf('%.3g', MRS_struct.out.(vox{kk}).Cr.Area(ii));
+                        
+                        text(0.4, text_pos-4*shift+n, 'Water: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                        text(0.425, text_pos-4*shift+n, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                        text(0.4, text_pos-5*shift+n, 'Cr: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                        text(0.425, text_pos-5*shift+n, tmp2, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                        
+                        % 3. Linewidth
+                        text(0.4, text_pos-6*shift+n, 'Linewidth ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'right');
+                        
+                        tmp1 = sprintf('%.2f Hz', MRS_struct.out.(vox{kk}).water.FWHM(ii));
+                        tmp2 = sprintf('%.2f Hz', MRS_struct.out.(vox{kk}).Cr.FWHM(ii));
+                        text(0.4, text_pos-7*shift+n, 'Water: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                        text(0.425, text_pos-7*shift+n, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                        text(0.4, text_pos-8*shift+n, 'Cr: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                        text(0.425, text_pos-8*shift+n, tmp2, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                                            
+                        % 4. SNR
+                        text(0.4, text_pos-9*shift+n, 'SNR ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'right');
+                        
+                        tmp1 = sprintf('%.0f', MRS_struct.out.(vox{kk}).water.SNR(ii));
+                        tmp2 = sprintf('%.0f', MRS_struct.out.(vox{kk}).Cr.SNR(ii));
+                        text(0.4, text_pos-10*shift+n, 'Water: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                        text(0.425, text_pos-10*shift+n, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                        text(0.4, text_pos-11*shift+n, 'Cr: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                        text(0.425, text_pos-11*shift+n, tmp2, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                        
+                        % 5a. Fit Error
+                        text(0.4, text_pos-12*shift+n, 'Fit error ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'right');
+                        
+                        switch target{jj}
                             
-                            % 5b. Fit Error
-                            if strcmpi(target{jj},'GABA')
+                            case {'GABA','Glx','GSH','Lac','EtOH'}
+                                
+                                % 5b. Fit Error
+                                if strcmpi(target{jj},'GABA')
+                                    tmp1 = 'GABA+,Water: ';
+                                    tmp2 = 'GABA+,Cr: ';
+                                elseif strcmpi(target{jj},'Lac')
+                                    tmp1 = 'Lac+,Water: ';
+                                    tmp2 = 'Lac+,Cr: ';
+                                else
+                                    tmp1 = sprintf('%s,Water: ', target{jj});
+                                    tmp2 = sprintf('%s,Cr: ', target{jj});
+                                end
+                                tmp3 = sprintf('%.2f%%', MRS_struct.out.(vox{kk}).(target{jj}).FitError_W(ii));
+                                tmp4 = sprintf('%.2f%%', MRS_struct.out.(vox{kk}).(target{jj}).FitError_Cr(ii));
+                                
+                                text(0.4, text_pos-13*shift+n, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                                text(0.425, text_pos-13*shift+n, tmp3, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                                text(0.4, text_pos-14*shift+n, tmp2, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                                text(0.425, text_pos-14*shift+n, tmp4, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                                
+                                % 6. Quantification
+                                text(0.4, text_pos-15*shift+n, 'Quantification ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'right');
+                                
+                                if strcmpi(target{jj},'GABA')
+                                    tmp1 = 'GABA+/Water: ';
+                                    tmp2 = 'GABA+/Cr: ';
+                                elseif strcmpi(target{jj},'Lac')
+                                    tmp1 = 'Lac+/Water: ';
+                                    tmp2 = 'Lac+/Cr: ';
+                                else
+                                    tmp1 = sprintf('%s/Water: ', target{jj});
+                                    tmp2 = sprintf('%s/Cr: ', target{jj});
+                                end
+                                tmp3 = sprintf('%.2f i.u.', MRS_struct.out.(vox{kk}).(target{jj}).ConcIU(ii));
+                                tmp4 = sprintf('%.2f', MRS_struct.out.(vox{kk}).(target{jj}).ConcCr(ii));
+                                
+                                text(0.4, text_pos-16*shift+n, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                                text(0.425, text_pos-16*shift+n, tmp3, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                                text(0.4, text_pos-17*shift+n, tmp2, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                                text(0.425, text_pos-17*shift+n, tmp4, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                                
+                                n = 5*shift;
+                                
+                            case 'GABAGlx'
+                                
+                                % 5b. Fit Error
                                 tmp1 = 'GABA+,Water: ';
                                 tmp2 = 'GABA+,Cr: ';
-                            elseif strcmpi(target{jj},'Lac')
-                                tmp1 = 'Lac+,Water: ';
-                                tmp2 = 'Lac+,Cr: ';
-                            else
-                                tmp1 = sprintf('%s,Water: ', target{jj});
-                                tmp2 = sprintf('%s,Cr: ', target{jj});
-                            end
-                            tmp3 = sprintf('%.2f%%', MRS_struct.out.(vox{kk}).(target{jj}).FitError_W(ii));
-                            tmp4 = sprintf('%.2f%%', MRS_struct.out.(vox{kk}).(target{jj}).FitError_Cr(ii));
-                            
-                            text(0.4, text_pos-13*shift+n, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                            text(0.425, text_pos-13*shift+n, tmp3, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                            text(0.4, text_pos-14*shift+n, tmp2, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                            text(0.425, text_pos-14*shift+n, tmp4, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                            
-                            % 6. Quantification
-                            text(0.4, text_pos-15*shift+n, 'Quantification ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'right');
-                            
-                            if strcmpi(target{jj},'GABA')
+                                tmp3 = sprintf('%.2f%%', MRS_struct.out.(vox{kk}).GABA.FitError_W(ii));
+                                tmp4 = sprintf('%.2f%%', MRS_struct.out.(vox{kk}).GABA.FitError_Cr(ii));
+                                tmp5 = 'Glx,Water: ';
+                                tmp6 = 'Glx,Cr: ';
+                                tmp7 = sprintf('%.2f%%', MRS_struct.out.(vox{kk}).Glx.FitError_W(ii));
+                                tmp8 = sprintf('%.2f%%', MRS_struct.out.(vox{kk}).Glx.FitError_Cr(ii));
+                                
+                                text(0.4, text_pos-13*shift, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                                text(0.425, text_pos-13*shift, tmp3, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                                text(0.4, text_pos-14*shift, tmp2, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                                text(0.425, text_pos-14*shift, tmp4, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                                text(0.4, text_pos-15*shift, tmp5, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                                text(0.425, text_pos-15*shift, tmp7, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                                text(0.4, text_pos-16*shift, tmp6, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                                text(0.425, text_pos-16*shift, tmp8, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                                
+                                % 6. Quantification
+                                text(0.4, text_pos-17*shift, 'Quantification ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'right');
+                                
                                 tmp1 = 'GABA+/Water: ';
-                                tmp2 = 'GABA+/Cr: ';
-                            elseif strcmpi(target{jj},'Lac')
-                                tmp1 = 'Lac+/Water: ';
-                                tmp2 = 'Lac+/Cr: ';
-                            else
-                                tmp1 = sprintf('%s/Water: ', target{jj});
-                                tmp2 = sprintf('%s/Cr: ', target{jj});
-                            end
-                            tmp3 = sprintf('%.2f i.u.', MRS_struct.out.(vox{kk}).(target{jj}).ConcIU(ii));
-                            tmp4 = sprintf('%.2f', MRS_struct.out.(vox{kk}).(target{jj}).ConcCr(ii));
-                            
-                            text(0.4, text_pos-16*shift+n, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                            text(0.425, text_pos-16*shift+n, tmp3, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                            text(0.4, text_pos-17*shift+n, tmp2, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                            text(0.425, text_pos-17*shift+n, tmp4, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                            
-                            n = 5*shift;
-                            
-                        case 'GABAGlx'
-                            
-                            % 5b. Fit Error
-                            tmp1 = 'GABA+,Water: ';
-                            tmp2 = 'GABA+,Cr: ';
-                            tmp3 = sprintf('%.2f%%', MRS_struct.out.(vox{kk}).GABA.FitError_W(ii));
-                            tmp4 = sprintf('%.2f%%', MRS_struct.out.(vox{kk}).GABA.FitError_Cr(ii));
-                            tmp5 = 'Glx,Water: ';
-                            tmp6 = 'Glx,Cr: ';
-                            tmp7 = sprintf('%.2f%%', MRS_struct.out.(vox{kk}).Glx.FitError_W(ii));
-                            tmp8 = sprintf('%.2f%%', MRS_struct.out.(vox{kk}).Glx.FitError_Cr(ii));
-                            
-                            text(0.4, text_pos-13*shift, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                            text(0.425, text_pos-13*shift, tmp3, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                            text(0.4, text_pos-14*shift, tmp2, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                            text(0.425, text_pos-14*shift, tmp4, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                            text(0.4, text_pos-15*shift, tmp5, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                            text(0.425, text_pos-15*shift, tmp7, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                            text(0.4, text_pos-16*shift, tmp6, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                            text(0.425, text_pos-16*shift, tmp8, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                            
-                            % 6. Quantification
-                            text(0.4, text_pos-17*shift, 'Quantification ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'right');
-                            
-                            tmp1 = 'GABA+/Water: ';
-                            tmp2 = sprintf('%.2f i.u.', MRS_struct.out.(vox{kk}).GABA.ConcIU(ii));
-                            tmp3 = 'GABA+/Cr: ';
-                            tmp4 = sprintf('%.2f', MRS_struct.out.(vox{kk}).GABA.ConcCr(ii));
-                            tmp5 = 'Glx/Water: ';
-                            tmp6 = sprintf('%.2f i.u.', MRS_struct.out.(vox{kk}).Glx.ConcIU(ii));
-                            tmp7 = 'Glx/Cr: ';
-                            tmp8 = sprintf('%.2f', MRS_struct.out.(vox{kk}).Glx.ConcCr(ii));
-                            
-                            text(0.4, text_pos-18*shift, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                            text(0.425, text_pos-18*shift, tmp2, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                            text(0.4, text_pos-19*shift, tmp3, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                            text(0.425, text_pos-19*shift, tmp4, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                            text(0.4, text_pos-20*shift, tmp5, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                            text(0.425, text_pos-20*shift, tmp6, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                            text(0.4, text_pos-21*shift, tmp7, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                            text(0.425, text_pos-21*shift, tmp8, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                            
-                            n = 0;
-                            
-                    end
-                    
-                    % 7. FitVer
-                    text(0.4, text_pos-22.5*shift+n, 'FitVer: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                    text(0.425, text_pos-22.5*shift+n, MRS_struct.version.fit, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                    
-                else
-                    
-                    % 2. Area (Cr)
-                    tmp1 = sprintf('%.3g', MRS_struct.out.(vox{kk}).Cr.Area(ii));
-                    
-                    text(0.4, text_pos-4*shift+n, 'Cr: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                    text(0.425, text_pos-4*shift+n, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                    
-                    % 3. Linewidth
-                    text(0.4, text_pos-5*shift+n, 'Linewidth ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'right');
-                    
-                    tmp1 = sprintf('%.2f Hz', MRS_struct.out.(vox{kk}).Cr.FWHM(ii));
-                    text(0.4, text_pos-6*shift+n, 'Cr: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                    text(0.425, text_pos-6*shift+n, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                    
-                    % 4. SNR
-                    text(0.4, text_pos-7*shift+n, 'SNR ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'right');
-                    
-                    tmp1 = sprintf('%.0f', MRS_struct.out.(vox{kk}).Cr.SNR(ii));
-                    text(0.4, text_pos-8*shift+n, 'Cr: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                    text(0.425, text_pos-8*shift+n, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                                        
-                    % 5a. Fit Error
-                    text(0.4, text_pos-9*shift+n, 'Fit error ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'right');
-                    
-                    switch target{jj}
+                                tmp2 = sprintf('%.2f i.u.', MRS_struct.out.(vox{kk}).GABA.ConcIU(ii));
+                                tmp3 = 'GABA+/Cr: ';
+                                tmp4 = sprintf('%.2f', MRS_struct.out.(vox{kk}).GABA.ConcCr(ii));
+                                tmp5 = 'Glx/Water: ';
+                                tmp6 = sprintf('%.2f i.u.', MRS_struct.out.(vox{kk}).Glx.ConcIU(ii));
+                                tmp7 = 'Glx/Cr: ';
+                                tmp8 = sprintf('%.2f', MRS_struct.out.(vox{kk}).Glx.ConcCr(ii));
+                                
+                                text(0.4, text_pos-18*shift, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                                text(0.425, text_pos-18*shift, tmp2, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                                text(0.4, text_pos-19*shift, tmp3, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                                text(0.425, text_pos-19*shift, tmp4, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                                text(0.4, text_pos-20*shift, tmp5, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                                text(0.425, text_pos-20*shift, tmp6, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                                text(0.4, text_pos-21*shift, tmp7, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                                text(0.425, text_pos-21*shift, tmp8, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                                
+                                n = 0;
+                                
+                        end
                         
-                        case {'GABA','Glx','GSH','Lac','EtOH'}
+                        % 7. FitVer
+                        text(0.4, text_pos-22.5*shift+n, 'FitVer: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                        text(0.425, text_pos-22.5*shift+n, MRS_struct.version.fit, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                        
+                    else
+                        
+                        % 2. Area (Cr)
+                        tmp1 = sprintf('%.3g', MRS_struct.out.(vox{kk}).Cr.Area(ii));
+                        
+                        text(0.4, text_pos-4*shift+n, 'Cr: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                        text(0.425, text_pos-4*shift+n, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                        
+                        % 3. Linewidth
+                        text(0.4, text_pos-5*shift+n, 'Linewidth ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'right');
+                        
+                        tmp1 = sprintf('%.2f Hz', MRS_struct.out.(vox{kk}).Cr.FWHM(ii));
+                        text(0.4, text_pos-6*shift+n, 'Cr: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                        text(0.425, text_pos-6*shift+n, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                        
+                        % 4. SNR
+                        text(0.4, text_pos-7*shift+n, 'SNR ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'right');
+                        
+                        tmp1 = sprintf('%.0f', MRS_struct.out.(vox{kk}).Cr.SNR(ii));
+                        text(0.4, text_pos-8*shift+n, 'Cr: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                        text(0.425, text_pos-8*shift+n, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                                            
+                        % 5a. Fit Error
+                        text(0.4, text_pos-9*shift+n, 'Fit error ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'right');
+                        
+                        switch target{jj}
                             
-                            % 4b. Fit Error
-                            if strcmpi(target{jj},'GABA')
+                            case {'GABA','Glx','GSH','Lac','EtOH'}
+                                
+                                % 4b. Fit Error
+                                if strcmpi(target{jj},'GABA')
+                                    tmp1 = 'GABA+,Cr: ';
+                                elseif strcmpi(target{jj},'Lac')
+                                    tmp1 = 'Lac+,Cr: ';
+                                else
+                                    tmp1 = sprintf('%s,Cr: ', target{jj});
+                                end
+                                tmp2 = sprintf('%.2f%%', MRS_struct.out.(vox{kk}).(target{jj}).FitError_Cr(ii));
+                                
+                                text(0.4, text_pos-10*shift+n, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                                text(0.425, text_pos-10*shift+n, tmp2, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                                
+                                % 5. Quantification
+                                text(0.4, text_pos-11*shift+n, 'Quantification ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'right');
+                                
+                                if strcmpi(target{jj},'GABA')
+                                    tmp1 = 'GABA+/Cr: ';
+                                elseif strcmpi(target{jj},'Lac')
+                                    tmp1 = 'Lac+/Cr: ';
+                                else
+                                    tmp1 = sprintf('%s/Cr: ', target{jj});
+                                end
+                                tmp2 = sprintf('%.2f', MRS_struct.out.(vox{kk}).(target{jj}).ConcCr(ii));
+                                
+                                text(0.4, text_pos-12*shift+n, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                                text(0.425, text_pos-12*shift+n, tmp2, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                                
+                                n = 3*shift;
+                                
+                            case 'GABAGlx'
+                                
+                                % 4b. Fit Error
                                 tmp1 = 'GABA+,Cr: ';
-                            elseif strcmpi(target{jj},'Lac')
-                                tmp1 = 'Lac+,Cr: ';
-                            else
-                                tmp1 = sprintf('%s,Cr: ', target{jj});
-                            end
-                            tmp2 = sprintf('%.2f%%', MRS_struct.out.(vox{kk}).(target{jj}).FitError_Cr(ii));
-                            
-                            text(0.4, text_pos-10*shift+n, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                            text(0.425, text_pos-10*shift+n, tmp2, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                            
-                            % 5. Quantification
-                            text(0.4, text_pos-11*shift+n, 'Quantification ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'right');
-                            
-                            if strcmpi(target{jj},'GABA')
+                                tmp2 = sprintf('%.2f%%', MRS_struct.out.(vox{kk}).GABA.FitError_Cr(ii));
+                                tmp3 = 'Glx,Cr: ';
+                                tmp4 = sprintf('%.2f%%', MRS_struct.out.(vox{kk}).Glx.FitError_Cr(ii));
+                                
+                                text(0.4, text_pos-10*shift, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                                text(0.425, text_pos-10*shift, tmp2, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                                text(0.4, text_pos-11*shift, tmp3, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                                text(0.425, text_pos-11*shift, tmp4, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                                
+                                % 5. Quantification
+                                text(0.4, text_pos-12*shift, 'Quantification ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'right');
+                                
                                 tmp1 = 'GABA+/Cr: ';
-                            elseif strcmpi(target{jj},'Lac')
-                                tmp1 = 'Lac+/Cr: ';
-                            else
-                                tmp1 = sprintf('%s/Cr: ', target{jj});
-                            end
-                            tmp2 = sprintf('%.2f', MRS_struct.out.(vox{kk}).(target{jj}).ConcCr(ii));
-                            
-                            text(0.4, text_pos-12*shift+n, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                            text(0.425, text_pos-12*shift+n, tmp2, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                            
-                            n = 3*shift;
-                            
-                        case 'GABAGlx'
-                            
-                            % 4b. Fit Error
-                            tmp1 = 'GABA+,Cr: ';
-                            tmp2 = sprintf('%.2f%%', MRS_struct.out.(vox{kk}).GABA.FitError_Cr(ii));
-                            tmp3 = 'Glx,Cr: ';
-                            tmp4 = sprintf('%.2f%%', MRS_struct.out.(vox{kk}).Glx.FitError_Cr(ii));
-                            
-                            text(0.4, text_pos-10*shift, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                            text(0.425, text_pos-10*shift, tmp2, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                            text(0.4, text_pos-11*shift, tmp3, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                            text(0.425, text_pos-11*shift, tmp4, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                            
-                            % 5. Quantification
-                            text(0.4, text_pos-12*shift, 'Quantification ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'right');
-                            
-                            tmp1 = 'GABA+/Cr: ';
-                            tmp2 = sprintf('%.2f', MRS_struct.out.(vox{kk}).GABA.ConcCr(ii));
-                            tmp3 = 'Glx/Cr: ';
-                            tmp4 = sprintf('%.2f', MRS_struct.out.(vox{kk}).Glx.ConcCr(ii));
-                            
-                            text(0.4, text_pos-13*shift, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                            text(0.425, text_pos-13*shift, tmp2, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                            text(0.4, text_pos-14*shift, tmp3, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                            text(0.425, text_pos-14*shift, tmp4, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
-                            
-                            n = 0;
-                            
+                                tmp2 = sprintf('%.2f', MRS_struct.out.(vox{kk}).GABA.ConcCr(ii));
+                                tmp3 = 'Glx/Cr: ';
+                                tmp4 = sprintf('%.2f', MRS_struct.out.(vox{kk}).Glx.ConcCr(ii));
+                                
+                                text(0.4, text_pos-13*shift, tmp1, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                                text(0.425, text_pos-13*shift, tmp2, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                                text(0.4, text_pos-14*shift, tmp3, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                                text(0.425, text_pos-14*shift, tmp4, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                                
+                                n = 0;
+                                
+                        end
+                        
+                        % 6. FitVer
+                        text(0.4, text_pos-15.5*shift+n, 'FitVer: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
+                        text(0.425, text_pos-15.5*shift+n, MRS_struct.version.fit, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                        
                     end
                     
-                    % 6. FitVer
-                    text(0.4, text_pos-15.5*shift+n, 'FitVer: ', 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10, 'HorizontalAlignment', 'right');
-                    text(0.425, text_pos-15.5*shift+n, MRS_struct.version.fit, 'Units', 'normalized', 'FontName', 'Arial', 'FontSize', 10);
+                    % Save output as PDF
+                    run_count = SavePDF(h, MRS_struct, ii, jj, kk, vox, mfilename, run_count);
                     
-                end
-                
-                % Save output as PDF
-                run_count = SavePDF(h, MRS_struct, ii, jj, kk, vox, mfilename, run_count);
-                
+                end %%% FM MODIFICACION
+
             catch ME
                 
                 fprintf('\n');
